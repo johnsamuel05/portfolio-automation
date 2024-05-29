@@ -1,0 +1,36 @@
+name: Deploy Portfolio
+
+on:
+  workflow_dispatch: # Manual trigger
+  schedule:
+    - cron: '0 * * * *' # Run every hour
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      
+    - name: Use Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Fetch data from Google Sheets
+      id: fetch_data
+      run: node fetch-data.js
+      env:
+        CLIENT_EMAIL: ${{ secrets.CLIENT_EMAIL }}
+        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+        SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+
+    - name: Run deployment script for new data
+      run: node deploy.js "${{ steps.fetch_data.outputs.newData }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
